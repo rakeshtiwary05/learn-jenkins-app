@@ -1,19 +1,20 @@
 pipeline {
     agent any
 
-    stages {
+    environment {
+        CI = 'true'
+    }
 
+    stages {
         stage('Build') {
             agent {
                 docker {
                     image 'node:18-alpine'
-                    args '-v C:/ProgramData/Jenkins/.jenkins/workspace/learn-Jenkins-app:/app -w /app'
-                    reuseNode true
+                    args '-u root:root'  // Ensures proper permissions
                 }
             }
             steps {
                 sh '''
-                    ls -la
                     node --version
                     npm --version
                     npm ci
@@ -29,19 +30,18 @@ pipeline {
                     agent {
                         docker {
                             image 'node:18-alpine'
-                            reuseNode true
+                            args '-u root:root'
                         }
                     }
-
                     steps {
                         sh '''
-                            #test -f build/index.html
-                            npm test
+                            npm install
+                            npm test -- --ci --reporters=default --reporters=jest-junit
                         '''
                     }
                     post {
                         always {
-                            junit 'jest-results/junit.xml'
+                            junit 'jest-junit.xml'
                         }
                     }
                 }
@@ -50,22 +50,28 @@ pipeline {
                     agent {
                         docker {
                             image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
-                            reuseNode true
                         }
                     }
-
                     steps {
                         sh '''
+                            npm ci
                             npm install serve
-                            node_modules/.bin/serve -s build &
+                            nohup npx serve -s build > serve.log 2>&1 &
                             sleep 10
-                            npx playwright test  --reporter=html
+                            npx playwright install --with-deps
+                            npx playwright test --reporter=html
                         '''
                     }
-
                     post {
                         always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                            publishHTML(target: [
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: false,
+                                keepAll: true,
+                                reportDir: 'playwright-report',
+                                reportFiles: 'index.html',
+                                reportName: 'Playwright Test Report'
+                            ])
                         }
                     }
                 }
@@ -76,13 +82,14 @@ pipeline {
             agent {
                 docker {
                     image 'node:18-alpine'
-                    reuseNode true
                 }
             }
             steps {
                 sh '''
                     npm install netlify-cli
-                    node_modules/.bin/netlify --version
+                    npx netlify --version
+                    # Example deploy, replace with actual values:
+                    # npx netlify deploy --dir=build --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
                 '''
             }
         }
