@@ -7,6 +7,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18-alpine'
+                    args '-v /c/ProgramData/Jenkins/.jenkins/workspace/learn-Jenkins-app:/app -w /app'
                     reuseNode true
                 }
             }
