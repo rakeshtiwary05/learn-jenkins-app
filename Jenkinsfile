@@ -11,15 +11,17 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
+                        --user node ^
                         -v "%cd%:/app" ^
-                        -w /app node:18-alpine ^
+                        -w /app ^
+                        node:18-alpine ^
                         sh -c "npm install && npm run build && ls -la"
                     '''
                 }
             }
         }
 
-        // 👇 Add the rest stages after confirming Build is fixed.
+        // 👇 Add more stages (e.g., Test, Deploy) once Build succeeds.
     }
 
     post {
