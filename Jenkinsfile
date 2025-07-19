@@ -11,7 +11,6 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
-                        --user 1000:1000 ^
                         -v "%cd%:/app" ^
                         -w /app node:18-alpine ^
                         sh -c "npm install && npm run build && ls -la"
