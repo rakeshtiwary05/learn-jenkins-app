@@ -3,14 +3,15 @@ pipeline {
 
     environment {
         CI = 'true'
-        UNIX_WORKSPACE = '/c/ProgramData/Jenkins/.jenkins/workspace/learn-Jenkins-app' // update path if needed
     }
 
     stages {
         stage('Build') {
             steps {
                 script {
-                    docker.image('node:18-alpine').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                    def winPath = pwd()
+                    def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
+                    docker.image('node:18-alpine').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
                         sh '''
                             node --version
                             npm --version
@@ -28,7 +29,9 @@ pipeline {
                 stage('Unit tests') {
                     steps {
                         script {
-                            docker.image('node:18-alpine').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                            def winPath = pwd()
+                            def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
+                            docker.image('node:18-alpine').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
                                 sh '''
                                     npm install
                                     npm test -- --ci --reporters=default --reporters=jest-junit
@@ -46,7 +49,9 @@ pipeline {
                 stage('E2E') {
                     steps {
                         script {
-                            docker.image('mcr.microsoft.com/playwright:v1.39.0-jammy').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                            def winPath = pwd()
+                            def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
+                            docker.image('mcr.microsoft.com/playwright:v1.39.0-jammy').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
                                 sh '''
                                     npm ci
                                     npm install serve
@@ -77,11 +82,13 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    docker.image('node:18-alpine').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                    def winPath = pwd()
+                    def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
+                    docker.image('node:18-alpine').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
                         sh '''
                             npm install netlify-cli
                             npx netlify --version
-                            # Replace with actual Netlify deploy command:
+                            # Replace with actual deploy command
                             # npx netlify deploy --dir=build --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
                         '''
                     }
@@ -92,7 +99,7 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline completed"
+            echo "✅ Pipeline finished."
         }
     }
 }
