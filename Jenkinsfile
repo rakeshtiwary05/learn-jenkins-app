@@ -3,41 +3,38 @@ pipeline {
 
     environment {
         CI = 'true'
+        UNIX_WORKSPACE = '/c/ProgramData/Jenkins/.jenkins/workspace/learn-Jenkins-app' // update path if needed
     }
 
     stages {
         stage('Build') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
-                    args '-u root:root'  // Ensures proper permissions
-                }
-            }
             steps {
-                sh '''
-                    node --version
-                    npm --version
-                    npm ci
-                    npm run build
-                    ls -la
-                '''
+                script {
+                    docker.image('node:18-alpine').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                        sh '''
+                            node --version
+                            npm --version
+                            npm ci
+                            npm run build
+                            ls -la
+                        '''
+                    }
+                }
             }
         }
 
         stage('Tests') {
             parallel {
                 stage('Unit tests') {
-                    agent {
-                        docker {
-                            image 'node:18-alpine'
-                            args '-u root:root'
-                        }
-                    }
                     steps {
-                        sh '''
-                            npm install
-                            npm test -- --ci --reporters=default --reporters=jest-junit
-                        '''
+                        script {
+                            docker.image('node:18-alpine').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                                sh '''
+                                    npm install
+                                    npm test -- --ci --reporters=default --reporters=jest-junit
+                                '''
+                            }
+                        }
                     }
                     post {
                         always {
@@ -47,20 +44,19 @@ pipeline {
                 }
 
                 stage('E2E') {
-                    agent {
-                        docker {
-                            image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
-                        }
-                    }
                     steps {
-                        sh '''
-                            npm ci
-                            npm install serve
-                            nohup npx serve -s build > serve.log 2>&1 &
-                            sleep 10
-                            npx playwright install --with-deps
-                            npx playwright test --reporter=html
-                        '''
+                        script {
+                            docker.image('mcr.microsoft.com/playwright:v1.39.0-jammy').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                                sh '''
+                                    npm ci
+                                    npm install serve
+                                    nohup npx serve -s build > serve.log 2>&1 &
+                                    sleep 10
+                                    npx playwright install --with-deps
+                                    npx playwright test --reporter=html
+                                '''
+                            }
+                        }
                     }
                     post {
                         always {
@@ -79,19 +75,24 @@ pipeline {
         }
 
         stage('Deploy') {
-            agent {
-                docker {
-                    image 'node:18-alpine'
+            steps {
+                script {
+                    docker.image('node:18-alpine').inside("-u root:root -v ${env.UNIX_WORKSPACE}:${env.UNIX_WORKSPACE} -w ${env.UNIX_WORKSPACE}") {
+                        sh '''
+                            npm install netlify-cli
+                            npx netlify --version
+                            # Replace with actual Netlify deploy command:
+                            # npx netlify deploy --dir=build --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+                        '''
+                    }
                 }
             }
-            steps {
-                sh '''
-                    npm install netlify-cli
-                    npx netlify --version
-                    # Example deploy, replace with actual values:
-                    # npx netlify deploy --dir=build --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
-                '''
-            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline completed"
         }
     }
 }
