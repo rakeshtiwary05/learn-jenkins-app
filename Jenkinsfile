@@ -11,6 +11,7 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
+                        --user root ^
                         -v "%cd%:/app" ^
                         -w /app node:18-alpine ^
                         sh -c "npm install && npm run build && ls -la"
@@ -24,6 +25,7 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
+                        --user root ^
                         -v "%cd%:/app" ^
                         -w /app node:18-alpine ^
                         sh -c "npm install && \
@@ -44,6 +46,7 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
+                        --user root ^
                         -v "%cd%:/app" ^
                         -w /app ^
                         -e CI=true mcr.microsoft.com/playwright:v1.39.0-jammy ^
@@ -77,6 +80,7 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
+                        --user root ^
                         -v "%cd%:/app" ^
                         -w /app ^
                         -e NETLIFY_AUTH_TOKEN ^
