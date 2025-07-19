@@ -9,11 +9,19 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    // Using docker run with volume mount instead of create/cp/start
+                    // Solution 1: Run as current user (recommended)
                     bat '''
-                        docker run --rm -v "%cd%:/app" -w /app node:18-alpine \
+                        docker run --rm -u $(id -u):$(id -g) -v "%cd%:/app" -w /app node:18-alpine \
                         sh -c "npm install && npm run build && ls -la"
                     '''
+                    
+                    // OR Solution 2: Use a different directory inside container
+                    /*
+                    bat '''
+                        docker run --rm -v "%cd%:/app" -w /app node:18-alpine \
+                        sh -c "mkdir -p /tmp/build && cp -R /app/. /tmp/build && cd /tmp/build && npm install && npm run build && cp -R /tmp/build/. /app"
+                    '''
+                    */
                 }
             }
         }
@@ -21,9 +29,8 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
-                    // Run tests and generate report in one command
                     bat '''
-                        docker run --rm -v "%cd%:/app" -w /app node:18-alpine \
+                        docker run --rm -u $(id -u):$(id -g) -v "%cd%:/app" -w /app node:18-alpine \
                         sh -c "npm install && 
                                npm install --save-dev jest-junit && 
                                npm test -- --ci --reporters=default --reporters=jest-junit"
@@ -40,9 +47,8 @@ pipeline {
         stage('E2E') {
             steps {
                 script {
-                    // Using docker run with all commands in one execution
                     bat '''
-                        docker run --rm -v "%cd%:/app" -w /app -e CI=true mcr.microsoft.com/playwright:v1.39.0-jammy \
+                        docker run --rm -u $(id -u):$(id -g) -v "%cd%:/app" -w /app -e CI=true mcr.microsoft.com/playwright:v1.39.0-jammy \
                         sh -c "npm install &&
                                npm install serve &&
                                npx playwright install --with-deps &&
@@ -71,9 +77,8 @@ pipeline {
             }
             steps {
                 script {
-                    // Only run when ready to deploy
                     bat '''
-                        docker run --rm -v "%cd%:/app" -w /app -e NETLIFY_AUTH_TOKEN -e NETLIFY_SITE_ID node:18-alpine \
+                        docker run --rm -u $(id -u):$(id -g) -v "%cd%:/app" -w /app -e NETLIFY_AUTH_TOKEN -e NETLIFY_SITE_ID node:18-alpine \
                         sh -c "npm install netlify-cli &&
                                npx netlify deploy --dir=build --prod"
                     '''
