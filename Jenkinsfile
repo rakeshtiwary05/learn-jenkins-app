@@ -11,15 +11,16 @@ pipeline {
                 script {
                     def winPath = pwd()
                     def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
-                    docker.image('node:18-alpine').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
-                        sh '''
-                            node --version
-                            npm --version
-                            npm ci
-                            npm run build
+
+                    bat """
+                        docker run --rm -u root:root -v ${unixPath}:${unixPath} -w ${unixPath} node:18-alpine sh -c "
+                            node --version &&
+                            npm --version &&
+                            npm ci &&
+                            npm run build &&
                             ls -la
-                        '''
-                    }
+                        "
+                    """
                 }
             }
         }
@@ -31,12 +32,13 @@ pipeline {
                         script {
                             def winPath = pwd()
                             def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
-                            docker.image('node:18-alpine').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
-                                sh '''
-                                    npm install
+
+                            bat """
+                                docker run --rm -u root:root -v ${unixPath}:${unixPath} -w ${unixPath} node:18-alpine sh -c "
+                                    npm install &&
                                     npm test -- --ci --reporters=default --reporters=jest-junit
-                                '''
-                            }
+                                "
+                            """
                         }
                     }
                     post {
@@ -51,16 +53,17 @@ pipeline {
                         script {
                             def winPath = pwd()
                             def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
-                            docker.image('mcr.microsoft.com/playwright:v1.39.0-jammy').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
-                                sh '''
-                                    npm ci
-                                    npm install serve
+
+                            bat """
+                                docker run --rm -u root:root -v ${unixPath}:${unixPath} -w ${unixPath} mcr.microsoft.com/playwright:v1.39.0-jammy sh -c "
+                                    npm ci &&
+                                    npm install serve &&
                                     nohup npx serve -s build > serve.log 2>&1 &
-                                    sleep 10
-                                    npx playwright install --with-deps
+                                    sleep 10 &&
+                                    npx playwright install --with-deps &&
                                     npx playwright test --reporter=html
-                                '''
-                            }
+                                "
+                            """
                         }
                     }
                     post {
@@ -84,14 +87,14 @@ pipeline {
                 script {
                     def winPath = pwd()
                     def unixPath = winPath.replace('C:\\', '/c/').replace('\\', '/')
-                    docker.image('node:18-alpine').inside("-u root:root -v ${unixPath}:${unixPath} -w ${unixPath}") {
-                        sh '''
-                            npm install netlify-cli
+
+                    bat """
+                        docker run --rm -u root:root -v ${unixPath}:${unixPath} -w ${unixPath} node:18-alpine sh -c "
+                            npm install netlify-cli &&
                             npx netlify --version
-                            # Replace with actual deploy command
-                            # npx netlify deploy --dir=build --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
-                        '''
-                    }
+                            # npx netlify deploy --dir=build --auth=\$NETLIFY_AUTH_TOKEN --site=\$NETLIFY_SITE_ID
+                        "
+                    """
                 }
             }
         }
@@ -99,7 +102,7 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline finished."
+            echo "✅ Jenkins Pipeline completed"
         }
     }
 }
