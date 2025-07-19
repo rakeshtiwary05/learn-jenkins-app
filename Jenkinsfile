@@ -11,7 +11,6 @@ pipeline {
                 script {
                     bat '''
                         docker run --rm ^
-                        --user node ^
                         -v "%cd%:/app" ^
                         -w /app ^
                         node:18-alpine ^
@@ -20,8 +19,6 @@ pipeline {
                 }
             }
         }
-
-        // 👇 Add more stages (e.g., Test, Deploy) once Build succeeds.
     }
 
     post {
